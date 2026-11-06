@@ -41,7 +41,7 @@ def rub(x):
 
 
 def build(inp):
-    pf = inp.get("price_file") or os.path.join(HERE, "..", "references", "smeta_raboty_2026.json")
+    pf = inp.get("price_file") or os.path.join(HERE, "smeta_raboty_2026.json")
     if not os.path.isabs(pf):
         pf = os.path.normpath(os.path.join(HERE, pf)) if not os.path.exists(pf) else pf
     prices = json.load(open(pf, encoding="utf-8"))["items"]
