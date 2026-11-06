@@ -1,0 +1,42 @@
+name: build-windows
+on: [push, workflow_dispatch]
+jobs:
+  build:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: {python-version: "3.12"}
+      - run: pip install pyinstaller openpyxl pillow
+      - run: pyinstaller --noconfirm masterskaya.spec
+      - name: Собрать папку программы
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force "dist\Мастерская\Мастерская" | Out-Null
+          Copy-Item -Recurse -Force "Мастерская\*" "dist\Мастерская\Мастерская\"
+          Copy-Item -Recurse -Force "Дом 120" "dist\Мастерская\"
+          Get-ChildItem -Recurse dist\Мастерская -Depth 1 | Select-Object FullName
+      - name: Проверка на Windows
+        shell: pwsh
+        run: |
+          $d = "dist\Мастерская"
+          New-Item -ItemType Directory -Force "$d\Мастерская\static" | Out-Null
+          Set-Content "$d\Мастерская\static\index.html" "<html>test</html>"
+          $env:MASTERSKAYA_NO_BROWSER = "1"
+          $p = Start-Process -FilePath "$d\Мастерская.exe" -PassThru -RedirectStandardOutput out.txt -RedirectStandardError err.txt
+          $ok = $false
+          for ($i=0; $i -lt 60; $i++) { Start-Sleep 1; try { $s = Invoke-RestMethod http://127.0.0.1:8800/api/state; $ok = $true; break } catch {} }
+          Get-Content out.txt, err.txt
+          if (-not $ok) { throw "сервер не поднялся" }
+          "оборудования: " + ($s.equipment | Measure-Object).Count
+          $v = Invoke-RestMethod -Method Post -ContentType "application/json" -Uri http://127.0.0.1:8800/api/variants -Body '{"id":"kol_tp","d":[-0.3,0,0]}'
+          "вариантов трассы: " + ($v.variants | Measure-Object).Count + " " + $v.why
+          $m = Invoke-RestMethod -Method Post -ContentType "application/json" -Uri http://127.0.0.1:8800/api/smeta -Body '{}'
+          "смета: ok=" + $m.ok + " " + $m.total + " " + $m.err
+          if (-not $m.ok) { throw "смета не посчиталась" }
+          Stop-Process -Id $p.Id -Force
+          Remove-Item -Recurse -Force "$d\Мастерская\static", "$d\Мастерская\история", "$d\Мастерская\.ключ", "$d\Мастерская\chat.jsonl" -ErrorAction SilentlyContinue
+          git checkout -- "Дом 120"
+          Copy-Item -Recurse -Force "Дом 120" "$d\"
+      - uses: actions/upload-artifact@v4
+        with: {name: masterskaya-win, path: dist/Мастерская}
