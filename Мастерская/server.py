@@ -387,7 +387,7 @@ class H(BaseHTTPRequestHandler):
             r = subprocess.run(([sys.executable, "smeta_kotelnaya_full.py"] if getattr(sys, "frozen", False) else ["uv", "run", "-q", "--with", "openpyxl", "python3", "smeta_kotelnaya_full.py"]),
                                cwd=PROJ_DIR, capture_output=True, text=True, timeout=300)
             md = os.path.join(PROJ_DIR, "Смета котельная Д120 — полная.md")
-            tot = [l for l in open(md, encoding="utf-8") if "ВСЕГО" in l]
+            tot = [l for l in open(md, encoding="utf-8") if "ВСЕГО" in l] if os.path.exists(md) else []
             return self.send(200, {"ok": r.returncode == 0, "total": tot[-1].strip() if tot else "",
                                    "xlsx": "/files/Смета котельная Д120 — полная.xlsx", "err": r.stderr[-800:]})
         self.send(404, {"error": "нет такого действия"})

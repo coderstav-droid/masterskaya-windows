@@ -29,6 +29,7 @@ jobs:
           Get-Content out.txt, err.txt
           if (-not $ok) { throw "сервер не поднялся" }
           "оборудования: " + ($s.equipment | Measure-Object).Count
+          Push-Location "$d\Дом 120"; & "..\Мастерская.exe" smeta_kotelnaya_full.py 2>&1 | Select-Object -Last 15; "код выхода сметы: $LASTEXITCODE"; Pop-Location
           $v = Invoke-RestMethod -Method Post -ContentType "application/json" -Uri http://127.0.0.1:8800/api/variants -Body '{"id":"kol_tp","d":[-0.3,0,0]}'
           "вариантов трассы: " + ($v.variants | Measure-Object).Count + " " + $v.why
           $m = Invoke-RestMethod -Method Post -ContentType "application/json" -Uri http://127.0.0.1:8800/api/smeta -Body '{}'
